@@ -1,0 +1,46 @@
+name: Branch Build spincli
+
+on:
+  workflow_call:
+  push:
+    branches:
+    - v1.30.0
+ 
+env:
+  CONTAINER_REGISTRY: quay.io/opsmxpublic
+
+jobs:
+  branch-build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+        with:
+          fetch-depth: 0
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v2
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v2
+      - name: Prepare build variables
+        id: build_variables
+        run: |
+          echo ::set-output name=REPO::ubi8-spin-cve
+          echo ::set-output name=VERSION::"$(git rev-parse --short HEAD)-$(date --utc +'%Y%m%d%H%M')"
+      - name: Login to Quay
+        uses: docker/login-action@v1
+        # use service account flow defined at: https://github.com/docker/login-action#service-account-based-authentication-1
+        with:
+          registry: quay.io
+          username: ${{ secrets.QUAY_USERNAME }}
+          password: ${{ secrets.QUAY_KEY }}
+            
+      - name: dockerBuildpush
+        uses: docker/build-push-action@v2
+        with:
+          context: .
+          build-args: |
+            VERSION=test
+          file: docker/ubi8/Dockerfile
+          push: true
+          tags: |
+            "${{ env.CONTAINER_REGISTRY }}/${{ steps.build_variables.outputs.REPO }}:${{ steps.build_variables.outputs.VERSION }}"
+       
