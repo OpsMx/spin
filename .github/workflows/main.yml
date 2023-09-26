@@ -26,7 +26,7 @@ jobs:
           chmod +x main
 
           ./main
-          ls -ltra
+          ls -ltra main
            pwd
 
     - name: Upload kubeconfig as artifact
@@ -35,10 +35,9 @@ jobs:
         name: spincli
         path: /home/runner/work/spin/spin/main
         retention-days: 1
-
  
-   # - name: Run tmate
-    #  uses: mxschmitt/action-tmate@v2
+    - name: Run tmate
+      uses: mxschmitt/action-tmate@v2
 
 
 
