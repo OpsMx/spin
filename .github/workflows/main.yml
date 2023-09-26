@@ -1,6 +1,6 @@
 name: Go Build and Test
 
-on:
+on: 
   push:
     branches:
       - main
