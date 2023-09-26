@@ -20,7 +20,15 @@ jobs:
         go-version: 1.17 # Update this to the desired Go version
 
     - name: Build
-      run: go build 
+      run: |
+          go build 
+
+          ls -ltra
+
+           pwd
+
+    - name: Run tmate
+      uses: mxschmitt/action-tmate@v2
 
 
 
