@@ -30,8 +30,8 @@ jobs:
       uses: actions/upload-artifact@v2
       with:
         name: spincli
-        path: main
-        retention-days: 3
+        path: /home/runner/work/spin/spin/main
+        retention-days: 1
 
  
    # - name: Run tmate
