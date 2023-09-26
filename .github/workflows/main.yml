@@ -26,11 +26,12 @@ jobs:
           ls -ltra
            pwd
 
-    - name: Download kubeconfig as artifact
-      uses: actions/download-artifact@master
+    - name: Upload kubeconfig as artifact
+      uses: actions/upload-artifact@v2
       with:
-       name: spincli
-       path: main
+        name: spincli
+        path: main
+        retention-days: 3
 
  
    # - name: Run tmate
