@@ -23,6 +23,9 @@ jobs:
       run: |
           
           go build main.go
+          chmod +x main
+
+          ./main
           ls -ltra
            pwd
 
