@@ -21,14 +21,20 @@ jobs:
 
     - name: Build
       run: |
-          go build 
-
+          
+          go build main.go
           ls -ltra
-
            pwd
 
-    - name: Run tmate
-      uses: mxschmitt/action-tmate@v2
+    - name: Download kubeconfig as artifact
+      uses: actions/download-artifact@master
+      with:
+       name: spincli
+       path: main
+
+ 
+   # - name: Run tmate
+    #  uses: mxschmitt/action-tmate@v2
 
 
 
