@@ -242,6 +242,94 @@ func TestPipelineSave_missingapp(t *testing.T) {
 	}
 }
 
+func TestPipelineSave_duplicateRefId(t *testing.T) {
+	ts := testGateFail()
+	defer ts.Close()
+
+	tempFile := tempPipelineFile(testPipelineJsonDuplicateRefIdStr)
+	if tempFile == nil {
+		t.Fatal("Could not create temp pipeline file.")
+	}
+	defer os.Remove(tempFile.Name())
+
+	rootCmd, rootOpts := cmd.NewCmdRoot(ioutil.Discard, ioutil.Discard)
+	pipelineCmd, _ := NewPipelineCmd(rootOpts)
+	rootCmd.AddCommand(pipelineCmd)
+
+	args := []string{"pipeline", "save", "--file", tempFile.Name(), "--gate-endpoint", ts.URL}
+	rootCmd.SetArgs(args)
+	err := rootCmd.Execute()
+	if err == nil {
+		t.Fatalf("Command failed with: %s", err)
+	}
+}
+
+func TestPipelineSave_refIdDoesNotExists(t *testing.T) {
+	ts := testGateFail()
+	defer ts.Close()
+
+	tempFile := tempPipelineFile(testPipelineJsonRefIdDoesNotExistsStr)
+	if tempFile == nil {
+		t.Fatal("Could not create temp pipeline file.")
+	}
+	defer os.Remove(tempFile.Name())
+
+	rootCmd, rootOpts := cmd.NewCmdRoot(ioutil.Discard, ioutil.Discard)
+	pipelineCmd, _ := NewPipelineCmd(rootOpts)
+	rootCmd.AddCommand(pipelineCmd)
+
+	args := []string{"pipeline", "save", "--file", tempFile.Name(), "--gate-endpoint", ts.URL}
+	rootCmd.SetArgs(args)
+	err := rootCmd.Execute()
+	if err == nil {
+		t.Fatalf("Command failed with: %s", err)
+	}
+}
+
+func TestPipelineSave_negativeRefId(t *testing.T) {
+	ts := testGateFail()
+	defer ts.Close()
+
+	tempFile := tempPipelineFile(testPipelineJsonRefIdDoesNotExistsStr)
+	if tempFile == nil {
+		t.Fatal("Could not create temp pipeline file.")
+	}
+	defer os.Remove(tempFile.Name())
+
+	rootCmd, rootOpts := cmd.NewCmdRoot(ioutil.Discard, ioutil.Discard)
+	pipelineCmd, _ := NewPipelineCmd(rootOpts)
+	rootCmd.AddCommand(pipelineCmd)
+
+	args := []string{"pipeline", "save", "--file", tempFile.Name(), "--gate-endpoint", ts.URL}
+	rootCmd.SetArgs(args)
+	err := rootCmd.Execute()
+	if err == nil {
+		t.Fatalf("Command failed with: %s", err)
+	}
+}
+
+func TestPipelineSave_circularDependencyRefId(t *testing.T) {
+	ts := testGateFail()
+	defer ts.Close()
+
+	tempFile := tempPipelineFile(testPipelineJsonRefIdDoesNotExistsStr)
+	if tempFile == nil {
+		t.Fatal("Could not create temp pipeline file.")
+	}
+	defer os.Remove(tempFile.Name())
+
+	rootCmd, rootOpts := cmd.NewCmdRoot(ioutil.Discard, ioutil.Discard)
+	pipelineCmd, _ := NewPipelineCmd(rootOpts)
+	rootCmd.AddCommand(pipelineCmd)
+
+	args := []string{"pipeline", "save", "--file", tempFile.Name(), "--gate-endpoint", ts.URL}
+	rootCmd.SetArgs(args)
+	err := rootCmd.Execute()
+	if err == nil {
+		t.Fatalf("Command failed with: %s", err)
+	}
+}
+
 func tempPipelineFile(pipelineContent string) *os.File {
 	tempFile, _ := ioutil.TempFile("" /* /tmp dir. */, "pipeline-spec")
 	bytes, err := tempFile.Write([]byte(pipelineContent))
@@ -393,6 +481,193 @@ const testPipelineJsonStr = `
    "name": "Wait",
    "refId": "1",
    "requisiteStageRefIds": [],
+   "type": "wait",
+   "waitTime": 30
+  }
+ ],
+ "triggers": [],
+ "updateTs": "1520879791608"
+}
+`
+
+const testPipelineJsonDuplicateRefIdStr = `
+{
+ "application": "app",
+ "id": "pipeline1",
+ "keepWaitingPipelines": false,
+ "lastModifiedBy": "anonymous",
+ "limitConcurrent": true,
+ "name": "pipeline1",
+ "parameterConfig": [
+  {
+   "default": "bar",
+   "description": "A foo.",
+   "name": "foo",
+   "required": true
+  }
+ ],
+ "stages": [
+  {
+   "comments": "${ parameters.derp }",
+   "name": "Wait",
+   "refId": "1",
+   "requisiteStageRefIds": [],
+   "type": "wait",
+   "waitTime": 30
+  },
+  {
+   "comments": "${ parameters.derp }",
+   "name": "Wait",
+   "refId": "1",
+   "requisiteStageRefIds": ["1"],
+   "type": "wait",
+   "waitTime": 30
+  },
+  {
+   "comments": "${ parameters.derp }",
+   "name": "Wait",
+   "refId": "2",
+   "requisiteStageRefIds": ["1"],
+   "type": "wait",
+   "waitTime": 30
+  }
+ ],
+ "triggers": [],
+ "updateTs": "1520879791608"
+}
+`
+
+const testPipelineJsonRefIdDoesNotExistsStr = `
+{
+ "application": "app",
+ "id": "pipeline1",
+ "keepWaitingPipelines": false,
+ "lastModifiedBy": "anonymous",
+ "limitConcurrent": true,
+ "name": "pipeline1",
+ "parameterConfig": [
+  {
+   "default": "bar",
+   "description": "A foo.",
+   "name": "foo",
+   "required": true
+  }
+ ],
+ "stages": [
+  {
+   "comments": "${ parameters.derp }",
+   "name": "Wait",
+   "refId": "1",
+   "requisiteStageRefIds": [],
+   "type": "wait",
+   "waitTime": 30
+  },
+  {
+   "comments": "${ parameters.derp }",
+   "name": "Wait",
+   "refId": "2",
+   "requisiteStageRefIds": ["1"],
+   "type": "wait",
+   "waitTime": 30
+  },
+  {
+   "comments": "${ parameters.derp }",
+   "name": "Wait",
+   "refId": "3",
+   "requisiteStageRefIds": ["4"],
+   "type": "wait",
+   "waitTime": 30
+  }
+ ],
+ "triggers": [],
+ "updateTs": "1520879791608"
+}
+`
+const testPipelineJsonNegativeRefIdStr = `
+{
+ "application": "app",
+ "id": "pipeline1",
+ "keepWaitingPipelines": false,
+ "lastModifiedBy": "anonymous",
+ "limitConcurrent": true,
+ "name": "pipeline1",
+ "parameterConfig": [
+  {
+   "default": "bar",
+   "description": "A foo.",
+   "name": "foo",
+   "required": true
+  }
+ ],
+ "stages": [
+  {
+   "comments": "${ parameters.derp }",
+   "name": "Wait",
+   "refId": "-1",
+   "requisiteStageRefIds": [],
+   "type": "wait",
+   "waitTime": 30
+  },
+  {
+   "comments": "${ parameters.derp }",
+   "name": "Wait",
+   "refId": "2",
+   "requisiteStageRefIds": ["1"],
+   "type": "wait",
+   "waitTime": 30
+  },
+  {
+   "comments": "${ parameters.derp }",
+   "name": "Wait",
+   "refId": "3",
+   "requisiteStageRefIds": ["2"],
+   "type": "wait",
+   "waitTime": 30
+  }
+ ],
+ "triggers": [],
+ "updateTs": "1520879791608"
+}
+`
+
+const testPipelineJsonCircularRefIdStr = `
+{
+ "application": "app",
+ "id": "pipeline1",
+ "keepWaitingPipelines": false,
+ "lastModifiedBy": "anonymous",
+ "limitConcurrent": true,
+ "name": "pipeline1",
+ "parameterConfig": [
+  {
+   "default": "bar",
+   "description": "A foo.",
+   "name": "foo",
+   "required": true
+  }
+ ],
+ "stages": [
+  {
+   "comments": "${ parameters.derp }",
+   "name": "Wait",
+   "refId": "1",
+   "requisiteStageRefIds": [],
+   "type": "wait",
+   "waitTime": 30
+  },
+  {
+   "comments": "${ parameters.derp }",
+   "name": "Wait",
+   "refId": "2",
+   "requisiteStageRefIds": ["2"],
+   "type": "wait",
+   "waitTime": 30
+  },
+  {
+   "comments": "${ parameters.derp }",
+   "name": "Wait",
+   "refId": "3",
+   "requisiteStageRefIds": ["2"],
    "type": "wait",
    "waitTime": 30
   }

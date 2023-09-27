@@ -18,6 +18,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"net/http"
+	"strconv"
 
 	"github.com/spf13/cobra"
 
@@ -85,6 +86,20 @@ func savePipeline(cmd *cobra.Command, options *saveOptions) error {
 
 	application := pipelineJson["application"].(string)
 	pipelineName := pipelineJson["name"].(string)
+	stages := pipelineJson["stages"].([]interface{})
+	anyDuplicateRefIdFlag, errString := checkForDuplicateRefIdsInPipelineJson(stages)
+	if(anyDuplicateRefIdFlag) {
+	    options.Ui.Error(errString + "...\n")
+        valid = false
+	}
+    refIdDoesNotExists, errString := checkForRefIdsInRequisiteStageRefIds(stages)
+    if(refIdDoesNotExists) {
+    	options.Ui.Error(errString + "...\n")
+        valid = false
+    }
+	if !valid {
+        return fmt.Errorf("Submitted pipeline is invalid: %s\n", pipelineJson)
+    }
 
 	foundPipeline, queryResp, _ := options.GateClient.ApplicationControllerApi.GetPipelineConfigUsingGET(options.GateClient.Context, application, pipelineName)
 	switch queryResp.StatusCode {
@@ -112,4 +127,100 @@ func savePipeline(cmd *cobra.Command, options *saveOptions) error {
 
 	options.Ui.Success("Pipeline save succeeded")
 	return nil
+}
+
+func checkForDuplicateRefIdsInPipelineJson(stages []interface {})(bool, string) {
+    visited := make(map[string] bool, 0)
+    stagesJson := make(map[string] interface {}, 0)
+    for key := range stages {
+        stagesJson = stages[key].(map[string] interface {})
+        if (stagesJson["refId"] != nil) {
+            refId := stagesJson["refId"].(string)
+            if (checkIfRefIdIsNegative(refId)) {
+                if visited[refId] == true {
+                    return true, "Duplicate ref id found.Ref id's must be unique across the stages."
+                } else {
+                    visited[refId] = true
+                }
+            } else {
+                return true, "Ref id found in the pipeline stage json has negative value."
+            }
+        } else {
+            return true, "No ref id found in the pipeline stage json."
+        }
+    }
+    return false, "nil"
+}
+
+func checkForRefIdsInRequisiteStageRefIds(stages []interface {})(bool, string) {
+    refIdArr := make([]string, 0)
+    minRefId := 1
+    stagesJson := make(map[string] interface {}, 0)
+    for key := range stages {
+        stagesJson = stages[key].(map[string] interface {})
+        if (stagesJson["refId"] != nil) {
+            refId := stagesJson["refId"].(string)
+            intRefId, _ := strconv.Atoi(refId)
+            refIdArr = append(refIdArr, refId)
+            if(intRefId < minRefId) {
+                minRefId = intRefId
+            }
+        } else {
+            return true, "No ref id found in the pipeline stage json."
+        }
+    }
+    for key := range stages {
+        stagesJson = stages[key].(map[string] interface {})
+        if (stagesJson["requisiteStageRefIds"] != nil) {
+            refId := stagesJson["refId"].(string)
+            requisiteStageRefIdArr :=  stagesJson["requisiteStageRefIds"].([]interface {})
+            for _, v := range requisiteStageRefIdArr {
+                requisiteStageRefId := v.(string)
+                if !(checkIfRefIdExists(refIdArr, requisiteStageRefId)) {
+                    return true, "requisiteStageRefId contains ref id which does not exists in the pipeline stage json."
+                }
+                if (checkForCircularDependency(refId, requisiteStageRefId)) {
+                    return true, "requisiteStageRefId contains ref id which forms circular dependency in the pipeline stage json."
+                }
+            }
+            if !(checkForFirstStage(minRefId, requisiteStageRefIdArr, refId)) {
+                return true, "requisiteStageRefId should be empty for the first stage in the pipeline stage json."
+            }
+        } else {
+            return true, "No requisiteStageRefId found in the pipeline stage json."
+        }
+    }
+    return false, "nil"
+}
+
+func checkIfRefIdIsNegative(refId string) bool {
+    intVar, _ := strconv.Atoi(refId)
+    if (intVar > 0) {
+        return true
+    }
+    return false
+}
+
+func checkIfRefIdExists(s []string, str string) bool {
+    for _, v := range s {
+        if v == str {
+            return true
+        }
+    }
+    return false
+}
+
+func checkForCircularDependency(refId string, str string) bool {
+    if refId == str {
+        return true
+    }
+    return false
+}
+
+func checkForFirstStage(minRefId int, requisiteStageRefIdArr []interface {}, refId string) bool {
+    intVar, _ := strconv.Atoi(refId)
+        if ((intVar == minRefId) && !(len(requisiteStageRefIdArr) == 0)) {
+            return false
+        }
+    return true
 }
